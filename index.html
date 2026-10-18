@@ -16,9 +16,10 @@
   *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;-webkit-user-select:none;user-select:none;}
   html,body{width:100%;height:100%;overflow:hidden;background:#000;}
   body{font-family:"Courier New",ui-monospace,monospace;}
-  #app{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;
-       background:#000;}
-  #game{width:100%;height:100%;object-fit:contain;image-rendering:pixelated;
+  #app{position:fixed;inset:0;background:#000;}
+  /* canvas geometry is set by fitLayout() in JS (CSS % sizing breaks on some
+     Android browsers whose layout viewport doesn't follow rotation) */
+  #game{position:absolute;image-rendering:pixelated;
         image-rendering:crisp-edges;display:block;touch-action:none;}
 
   /* ---------- touch controls ---------- */
@@ -43,10 +44,17 @@
   .btn[data-b="b"]{background:radial-gradient(circle at 34% 28%,rgba(255,190,70,.6),rgba(130,80,10,.62));}
   .btn[data-b="c"]{background:radial-gradient(circle at 34% 28%,rgba(110,150,255,.6),rgba(30,50,130,.62));}
   .btn.down{transform:translateY(4px) scale(.96);box-shadow:0 0 0 rgba(0,0,0,.45),inset 0 0 22px rgba(0,0,0,.5);}
-  #pause{position:fixed;top:max(10px,env(safe-area-inset-top));right:max(10px,env(safe-area-inset-right));
-         z-index:11;width:40px;height:34px;line-height:1;border-radius:7px;cursor:pointer;
-         background:rgba(10,6,16,.62);border:1px solid rgba(255,255,255,.28);color:#e8c14a;
-         font-family:inherit;font-weight:bold;font-size:13px;letter-spacing:1px;}
+  #pause{position:fixed;top:max(6px,env(safe-area-inset-top));right:max(6px,env(safe-area-inset-right));
+         z-index:11;width:38px;height:32px;line-height:1;border-radius:7px;cursor:pointer;
+         background:rgba(10,6,16,.5);border:1px solid rgba(255,255,255,.22);color:#e8c14a;
+         font-family:inherit;font-weight:bold;font-size:12px;letter-spacing:1px;
+         opacity:.55;transition:opacity .8s;}
+  #pause.faded{opacity:0;}
+  #pause.faded:active{opacity:.6;}
+  #rotate{position:fixed;inset:0;z-index:50;display:none;align-items:center;justify-content:center;
+          flex-direction:column;gap:14px;background:#000;color:#e8c14a;
+          font-family:inherit;font-size:16px;letter-spacing:2px;text-align:center;line-height:1.9;}
+  #rotate svg{opacity:.9;}
   #hint{position:fixed;left:50%;transform:translateX(-50%);bottom:8px;z-index:9;
         color:rgba(255,255,255,.34);font-size:11px;white-space:nowrap;pointer-events:none;
         transition:opacity .6s;letter-spacing:.5px;}
@@ -64,32 +72,89 @@
     </div>
   </div>
   <button id="pause">❚❚</button>
-  <div id="hint">← ↑ ↓ → / WASD 移动 · J 拳 · K 跳 · L 必杀 · Enter 确定 · P 暂停</div>
+  <div id="rotate">
+    <svg width="64" height="64" viewBox="0 0 64 64" fill="none" stroke="#e8c14a" stroke-width="3">
+      <rect x="20" y="8" width="24" height="48" rx="4"/>
+      <path d="M50 20a20 20 0 0 1 6 14" stroke-linecap="round"/>
+      <path d="M52 30l4 5-7 1" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+    <div>请把手机横过来玩<br>若没有反应，请开启系统的「自动旋转」</div>
+  </div>
+  <div id="hint">移动 · J 拳(连按三连击) · K 跳 · L 必杀 · 双击方向 冲刺 · ↓+K 翻滚闪避 · 跳中↓+J 飞身下砸 · 按住↑+L 超必杀(LV6)</div>
 </div>
 <script src="js/spriteframes.js"></script>
 <script src="js/audio.js"></script>
 <script src="js/art.js"></script>
 <script src="js/game.js"></script>
 <script>
+  /* ---------- viewport & layout hardening ----------
+     Some Android browsers keep the layout viewport frozen when the phone is
+     rotated, which shrinks/misplaces everything. We (1) re-write the viewport
+     meta from JS, (2) size & centre the canvas from the real window size,
+     (3) re-run on every resize/orientation/visibility change. */
+  var VP = 'width=device-width,initial-scale=1,minimum-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover';
+  function forceVP() {
+    var m = document.querySelector('meta[name="viewport"]');
+    if (m && m.getAttribute('content') !== VP) m.setAttribute('content', VP);
+  }
+  forceVP();
+
+  var appEl = document.getElementById('app'),
+      gameEl = document.getElementById('game'),
+      rotateEl = document.getElementById('rotate');
+
+  function fitLayout() {
+    forceVP();
+    var vw = window.innerWidth, vh = window.innerHeight;
+    rotateEl.style.display = (vh > vw * 1.05) ? 'flex' : 'none';
+    var s = Math.min(vw / 480, vh / 270);
+    var w = Math.max(1, Math.floor(480 * s)), h = Math.max(1, Math.floor(270 * s));
+    gameEl.style.width = w + 'px';
+    gameEl.style.height = h + 'px';
+    gameEl.style.left = Math.floor((vw - w) / 2) + 'px';
+    gameEl.style.top = Math.floor((vh - h) / 2) + 'px';
+  }
+  fitLayout();
+  addEventListener('resize', fitLayout);
+  addEventListener('orientationchange', function () {
+    setTimeout(fitLayout, 250); setTimeout(fitLayout, 900);
+  });
+  document.addEventListener('fullscreenchange', fitLayout);
+
+  /* keep fullscreen: some browsers drop it after a tap, re-request silently */
+  function isFS() { return !!(document.fullscreenElement || document.webkitFullscreenElement); }
+  function goFullscreen() {
+    var el = document.documentElement;
+    var fn = el.requestFullscreen || el.webkitRequestFullscreen;
+    if (fn && !isFS()) { try { fn.call(el); } catch (e) {} }
+    if (screen.orientation && screen.orientation.lock) {
+      screen.orientation.lock('landscape').catch(function () {});
+    }
+  }
+  addEventListener('pointerdown', function () { if (!isFS()) goFullscreen(); }, true);
+  document.addEventListener('visibilitychange', function () {
+    if (!document.hidden) { fitLayout(); if (!isFS()) goFullscreen(); }
+  });
+
+  /* pause button: fades out during play (still tappable at the top-right
+     corner), lights up again whenever it is used */
+  var pauseBtn = document.getElementById('pause'), pauseT = 0;
+  function armPauseFade() {
+    pauseBtn.classList.remove('faded');
+    clearTimeout(pauseT);
+    pauseT = setTimeout(function () { pauseBtn.classList.add('faded'); }, 5000);
+  }
+  pauseBtn.addEventListener('pointerdown', function () {
+    clearTimeout(pauseT); pauseBtn.classList.remove('faded');
+  });
+  armPauseFade();
+
   if ('serviceWorker' in navigator &&
       (location.protocol === 'https:' || location.hostname === 'localhost' || location.hostname === '127.0.0.1')) {
     addEventListener('load', function () {
       navigator.serviceWorker.register('./sw.js').catch(function () {});
     });
   }
-  // 安卓上尽量横屏全屏
-  function goFullscreen() {
-    var el = document.documentElement;
-    var fn = el.requestFullscreen || el.webkitRequestFullscreen;
-    if (fn && !document.fullscreenElement) { try { fn.call(el); } catch (e) {} }
-    if (screen.orientation && screen.orientation.lock) {
-      screen.orientation.lock('landscape').catch(function () {});
-    }
-  }
-  addEventListener('pointerdown', function once() {
-    goFullscreen();
-    removeEventListener('pointerdown', once);
-  }, { once: true });
 </script>
 </body>
 </html>

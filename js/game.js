@@ -101,25 +101,39 @@
   /* ---------------- data ---------------- */
   const CHARS = {
     cody: {
-      key: 'cody', name: 'CODY', cn: '科迪', spd: 1.55, hp: 100, pow: 1.0,
+      key: 'cody', pal: 'cody', name: 'CODY', cn: '科迪', spd: 1.55, hp: 100, pow: 1.0,
       hair: 'long', style: '格斗术',
       moves: ['飞踢 / 膝击 / 旋风腿', '必杀：波动拳 LV4'],
       sp: 'hadouken', spLv: 4
     },
     guy: {
-      key: 'guy', name: 'GUY', cn: '凯', spd: 1.85, hp: 88, pow: 0.92,
+      key: 'guy', pal: 'guy', name: 'GUY', cn: '凯', spd: 1.85, hp: 88, pow: 0.92,
       hair: 'spiky', style: '忍术',
       moves: ['疾走 / 飞踢 / 膝击', '必杀：凯旋脚 LV4'],
       sp: 'hurricane', spLv: 4
     },
     haggar: {
-      key: 'haggar', name: 'HAGGAR', cn: '哈格', spd: 1.25, hp: 122, pow: 1.32,
+      key: 'haggar', pal: 'haggar', name: 'HAGGAR', cn: '哈格', spd: 1.25, hp: 122, pow: 1.32,
       hair: 'flat', style: '摔角技',
       moves: ['头锤 / 螺旋打桩', '必杀：双碎拳 初始'],
       sp: 'clothesline', spLv: 1
+    },
+    /* --- hidden: playable Mad Gear defectors, unlocked by clearing the game --- */
+    sodom: {
+      key: 'sodom', pal: 'soma', name: 'SODOM', cn: '武神', spd: 1.4, hp: 115, pow: 1.22,
+      hair: 'long', style: '剑术', secret: true,
+      moves: ['冲拳 / 飞踢 / 抓投', '必杀：居合斩 LV2'],
+      sp: 'slash', spLv: 2
+    },
+    damnd: {
+      key: 'damnd', pal: 'damnd', name: 'DAMND', cn: '毒蛇', spd: 1.75, hp: 90, pow: 0.95,
+      hair: 'flat', style: '街斗技', secret: true,
+      moves: ['疾走 / 飞踢 / 抓投', '必杀：旋风腿 LV4'],
+      sp: 'hurricane', spLv: 4
     }
   };
-  const CHAR_KEYS = ['cody', 'guy', 'haggar'];
+  const CHAR_KEYS = ['cody', 'guy', 'haggar', 'sodom', 'damnd'];
+  const BASE_KEYS = 3;   // first three are always available
 
   const ATK = [
     { s: 3, a: 4, r: 8, dmg: 7, kb: 1.2, reach: 8, len: 23, next: 1 },
@@ -127,22 +141,34 @@
     { s: 6, a: 5, r: 16, dmg: 14, kb: 3.6, reach: 5, len: 27, next: 0, launch: true }
   ];
 
+  /* moves: what the AI may pick from — punch / kick / jump / dash / knife */
   const ETYPES = {
-    jake:  { hp: 24, spd: 0.6, dmg: 7, score: 100, pal: 'jake', scale: 1, atkRange: 26, hair: 'spiky' },
-    axel:  { hp: 32, spd: 0.82, dmg: 9, score: 150, pal: 'axel', scale: 1, atkRange: 26, hair: 'flat' },
-    bill:  { hp: 30, spd: 0.92, dmg: 10, score: 200, pal: 'bill', scale: 0.97, atkRange: 27, hair: 'mohawk', weapon: 'knife' },
-    fat:   { hp: 62, spd: 0.42, dmg: 13, score: 300, pal: 'fat', scale: 1.14, atkRange: 30, hair: 'flat', bulky: true },
-    damnd:  { hp: 100, spd: 0.72, dmg: 12, score: 1000, pal: 'damnd', scale: 1.1, atkRange: 30, hair: 'flat', boss: true, armor: true },
-    sodom:  { hp: 135, spd: 0.6, dmg: 14, score: 1500, pal: 'soma', scale: 1.16, atkRange: 34, hair: 'long', boss: true, armor: true, weapon: 'stick' },
-    abigail:{ hp: 165, spd: 0.5, dmg: 16, score: 2000, pal: 'abigail', scale: 1.3, atkRange: 32, hair: 'mohawk', boss: true, armor: true, bulky: true },
-    retu:   { hp: 195, spd: 0.55, dmg: 17, score: 2500, pal: 'fat', scale: 1.3, atkRange: 33, hair: 'flat', boss: true, armor: true, bulky: true },
-    belger: { hp: 260, spd: 0.5, dmg: 20, score: 5000, pal: 'belger', scale: 1.35, atkRange: 36, hair: 'flat', boss: true, armor: true, bulky: true, weapon: 'stick' }
+    jake:  { hp: 34, spd: 0.62, dmg: 8, score: 120, pal: 'jake', scale: 1, atkRange: 26, hair: 'spiky',
+             moves: ['punch', 'punch', 'kick'] },
+    axel:  { hp: 46, spd: 0.84, dmg: 10, score: 180, pal: 'axel', scale: 1, atkRange: 26, hair: 'flat',
+             moves: ['punch', 'kick', 'dash', 'kick'] },
+    bill:  { hp: 44, spd: 0.94, dmg: 11, score: 240, pal: 'bill', scale: 0.97, atkRange: 27, hair: 'mohawk', weapon: 'knife',
+             moves: ['punch', 'knife', 'knife', 'kick'] },
+    fat:   { hp: 84, spd: 0.44, dmg: 15, score: 340, pal: 'fat', scale: 1.14, atkRange: 30, hair: 'flat', bulky: true,
+             moves: ['punch', 'dash', 'jump'] },
+    damnd:  { hp: 130, spd: 0.74, dmg: 13, score: 1200, pal: 'damnd', scale: 1.1, atkRange: 30, hair: 'flat',
+              boss: true, armor: true, moves: ['punch', 'dash', 'jump'] },
+    sodom:  { hp: 165, spd: 0.62, dmg: 15, score: 1800, pal: 'soma', scale: 1.16, atkRange: 34, hair: 'long',
+              boss: true, armor: true, weapon: 'stick', bouncy: true, moves: ['jump', 'jump', 'kick', 'punch'] },
+    abigail:{ hp: 200, spd: 0.52, dmg: 18, score: 2300, pal: 'abigail', scale: 1.3, atkRange: 32, hair: 'mohawk',
+              boss: true, armor: true, bulky: true, moves: ['punch', 'jump', 'dash'] },
+    retu:   { hp: 235, spd: 0.56, dmg: 19, score: 2800, pal: 'fat', scale: 1.3, atkRange: 33, hair: 'flat',
+              boss: true, armor: true, bulky: true, moves: ['punch', 'kick', 'dash', 'jump'] },
+    belger: { hp: 320, spd: 0.54, dmg: 22, score: 6000, pal: 'belger', scale: 1.35, atkRange: 36, hair: 'flat',
+              boss: true, armor: true, bulky: true, weapon: 'stick', bouncy: true,
+              moves: ['punch', 'dash', 'jump', 'knife'] }
   };
   const BOSS_NAME = { damnd: 'DAMND', sodom: 'SODOM', abigail: 'ABIGAIL', retu: 'RETU', belger: 'BELGER' };
 
   const STAGES = [
     {
       name: 'SLUM', cn: '贫民窟', round: 1, len: 1900, endX: 1770, music: 'stage1', bg: 'slum',
+      pits: [],
       waves: [
         { x: 240, list: ['jake', 'jake'] },
         { x: 600, list: ['jake', 'axel'] },
@@ -154,9 +180,10 @@
     },
     {
       name: 'HABOR TOWN', cn: '港口镇', round: 2, len: 2000, endX: 1870, music: 'stage2', bg: 'habor',
+      pits: [[640, 672], [1320, 1354]],
       waves: [
         { x: 260, list: ['axel', 'axel'] },
-        { x: 640, list: ['jake', 'bill'] },
+        { x: 560, list: ['jake', 'bill'] },
         { x: 1040, list: ['bill', 'axel', 'jake'] },
         { x: 1400, list: ['fat'] },
         { x: 1640, list: ['sodom'] }
@@ -165,6 +192,7 @@
     },
     {
       name: 'FACTORY', cn: '工厂', round: 3, len: 2100, endX: 1960, music: 'stage3', bg: 'factory',
+      pits: [[900, 934]],
       waves: [
         { x: 280, list: ['fat', 'jake'] },
         { x: 700, list: ['axel', 'fat'] },
@@ -176,9 +204,10 @@
     },
     {
       name: 'RIVERSIDE', cn: '河岸', round: 4, len: 2100, endX: 1960, music: 'stage1', bg: 'river',
+      pits: [[560, 592], [1240, 1274]],
       waves: [
         { x: 280, list: ['bill', 'bill'] },
-        { x: 700, list: ['fat', 'bill'] },
+        { x: 470, list: ['fat', 'bill'] },
         { x: 1120, list: ['axel', 'axel', 'fat'] },
         { x: 1500, list: ['fat', 'fat'] },
         { x: 1740, list: ['retu'] }
@@ -187,14 +216,39 @@
     },
     {
       name: 'BAY AREA', cn: '湾区', round: 5, len: 2200, endX: 2060, music: 'stage2', bg: 'bay',
+      pits: [[760, 794], [1480, 1514]],
       waves: [
         { x: 300, list: ['fat', 'bill'] },
         { x: 720, list: ['axel', 'fat', 'bill'] },
         { x: 1160, list: ['fat', 'fat', 'bill'] },
         { x: 1560, list: ['axel', 'fat', 'jake'] },
-        { x: 1860, list: ['belger'] }
+        { x: 1860, list: ['damnd', 'sodom'] }
       ],
       objs: [{ x: 540, z: 48, type: 'crate' }, { x: 1000, z: 42, type: 'barrel' }, { x: 1440, z: 86, type: 'barrel' }, { x: 1720, z: 56, type: 'crate' }]
+    },
+    {
+      name: 'SUBWAY', cn: '地铁站', round: 6, len: 2200, endX: 2060, music: 'stage3', bg: 'habor',
+      pits: [[480, 512], [980, 1012], [1480, 1512]],
+      waves: [
+        { x: 260, list: ['bill', 'bill', 'axel'] },
+        { x: 700, list: ['fat', 'bill', 'fat'] },
+        { x: 1240, list: ['axel', 'bill', 'fat', 'jake'] },
+        { x: 1620, list: ['fat', 'fat', 'bill'] },
+        { x: 1900, list: ['retu', 'abigail'] }
+      ],
+      objs: [{ x: 380, z: 44, type: 'barrel' }, { x: 880, z: 70, type: 'crate' }, { x: 1380, z: 40, type: 'barrel' }]
+    },
+    {
+      name: 'GEAR HQ', cn: '齿轮总部', round: 7, len: 2300, endX: 2160, music: 'boss', bg: 'factory',
+      pits: [[900, 936]],
+      waves: [
+        { x: 280, list: ['fat', 'axel'] },
+        { x: 700, list: ['bill', 'bill', 'fat'] },
+        { x: 1180, list: ['fat', 'fat', 'axel'] },
+        { x: 1600, list: ['bill', 'fat', 'bill', 'axel'] },
+        { x: 1980, list: ['belger'] }
+      ],
+      objs: [{ x: 460, z: 46, type: 'crate' }, { x: 1060, z: 60, type: 'barrel' }, { x: 1460, z: 82, type: 'crate' }]
     }
   ];
 
@@ -206,10 +260,19 @@
     lock: null, lockT: 0, waveIdx: 0, tokens: 2,
     shake: 0, msg: '', msgT: 0, combo: 0, comboT: 0,
     introT: 0, storyT: 0, clearT: 0, goT: 0, endT: 0, uid: 0, bonus: 0,
-    menuSel: 0, muted: false, continueCount: 0
+    menuSel: 0, muted: false, continueCount: 0,
+    warnT: 0, warnName: '', pitT: 0
   };
 
   try { G.hi = parseInt(localStorage.getItem('sb_hi') || '0', 10) || 0; } catch (e) { G.hi = 0; }
+  /* hidden characters unlock after one full clear */
+  try { G.unlocked = localStorage.getItem('sb_unlock') === '1'; } catch (e) { G.unlocked = false; }
+  function unlockSecrets() {
+    if (G.unlocked) return;
+    G.unlocked = true;
+    try { localStorage.setItem('sb_unlock', '1'); } catch (e) {}
+    G.msg = '隐藏角色 SODOM / DAMND 解锁!'; G.msgT = 120;
+  }
   function saveHi() {
     if (G.score > G.hi) { G.hi = G.score; try { localStorage.setItem('sb_hi', String(G.hi)); } catch (e) {} }
   }
@@ -269,7 +332,9 @@
       face: 1, hp: c.hp, maxHp: c.hp, state: 'idle', st: 0, t: 0,
       atkIdx: 0, atk: ATK[0], atkPh: 0, hitSet: new Set(), queued: false, atkAir: false,
       inv: 0, flash: 0, grabbed: null, grabCool: 0, deadT: 0,
-      level: 1, exp: 0, expNeed: 30, weapon: null, wUses: 0, spCool: 0
+      level: 1, exp: 0, expNeed: 30, weapon: null, wUses: 0, spCool: 0,
+      /* movement extras */
+      stomp: false, superSp: false, prevDir: 0, lastTapDir: 0, tapT: -99, dashCool: 0
     };
   }
 
@@ -299,6 +364,7 @@
     G.stageIdx = i;
     G.stage = STAGES[i];
     G.waveIdx = 0; G.lock = null; G.lockT = 0; G.tokens = 2;
+    G.warnT = 0; G.warnName = '';
     G.enemies = []; G.items = []; G.parts = []; G.pops = []; G.shots = [];
     G.objs = G.stage.objs.map((o, k) => ({
       id: k, x: o.x, z: o.z, type: o.type,
@@ -338,9 +404,21 @@
       e.face = side > 0 ? -1 : 1;
       G.enemies.push(e);
     });
-    const boss = w.list.some((t) => ETYPES[t].boss);
-    if (boss) SND.music('boss');
-    G.msg = boss ? 'BOSS!' : 'GO!'; G.msgT = 45;
+    const bosses = w.list.filter((t) => ETYPES[t].boss);
+    if (bosses.length) {
+      SND.music('boss');
+      G.warnT = 108;
+      G.warnName = bosses.map((t) => BOSS_NAME[t]).join('  &  ');
+      /* a tag-team boss wave is tuned down so it stays beatable */
+      if (bosses.length > 1) {
+        G.enemies.forEach((e) => {
+          if (e.cfg.boss) { e.hp = Math.max(60, Math.round(e.hp * 0.62)); e.maxHp = e.hp; }
+        });
+      }
+      G.msg = 'BOSS!'; G.msgT = 45;
+    } else {
+      G.msg = 'GO!'; G.msgT = 45;
+    }
   }
 
   function updateWaves() {
@@ -494,27 +572,44 @@
       G.msg = c.sp + ' 需要 LV' + c.spLv; G.msgT = 60;
       return;
     }
+    /* hold UP while pressing special = SUPER (LV6+), costs extra HP */
+    const wantSuper = p.level >= 6 && (keys.up || Input.ay < -0.4) && p.hp > 26;
+    p.superSp = wantSuper;
+    const mul = wantSuper ? 2.4 : 1;
+
     if (c.sp === 'hadouken') {
       p.state = 'punch3'; p.st = 0; p.atk = { s: 6, a: 4, r: 20, dmg: 0, kb: 0, reach: 0, len: 0, next: 0 }; p.atkIdx = 2; p.atkPh = 0; p.hitSet = new Set();
-      G.shots.push({ id: ++G.uid, x: p.x + p.face * 14, z: p.z, y: 20, vx: p.face * 4.2, dmg: 16, life: 130, face: p.face, delay: 10 });
+      if (wantSuper) {
+        p.hp -= 12;
+        for (let k = 0; k < 3; k++) {
+          G.shots.push({ id: ++G.uid, x: p.x + p.face * 14, z: p.z, y: 20 + k * 7, vx: p.face * (4.2 + k * 0.8), dmg: 15, life: 130, face: p.face, delay: 8 + k * 7 });
+        }
+        G.shake = 7;
+        spawnSpark(p.x + p.face * 18, FLOOR + p.z - 26, 14, '#8ff0ff');
+      } else {
+        G.shots.push({ id: ++G.uid, x: p.x + p.face * 14, z: p.z, y: 20, vx: p.face * 4.2, dmg: 16, life: 130, face: p.face, delay: 10 });
+      }
       SND.sfx('special');
-      p.spCool = 70;
+      p.spCool = wantSuper ? 110 : 70;
       return;
     }
     if (c.sp === 'hurricane') {
-      if (p.hp <= 12) return;
-      p.hp -= 8;
-      p.state = 'spin'; p.st = 0; p.inv = 46; p.hitSet = new Set(); p.spinMove = true;
+      if (p.hp <= (wantSuper ? 26 : 12)) return;
+      p.hp -= wantSuper ? 14 : 8;
+      p.state = 'spin'; p.st = 0; p.inv = wantSuper ? 60 : 46; p.hitSet = new Set(); p.spinMove = true;
+      p.spinDur = wantSuper ? 52 : 34; p.spinDmg = 10 * c.pow * mul;
       SND.sfx('special');
-      G.shake = 4; p.spCool = 90;
+      G.shake = wantSuper ? 8 : 4; p.spCool = wantSuper ? 120 : 90;
       return;
     }
-    /* clothesline */
-    if (p.hp <= 14) return;
-    p.hp -= 10;
-    p.state = 'spin'; p.st = 0; p.inv = 42; p.hitSet = new Set(); p.spinMove = false;
+    /* clothesline / slash: forward multi-hit rush */
+    if (p.hp <= (wantSuper ? 30 : 14)) return;
+    p.hp -= wantSuper ? 16 : 10;
+    p.state = 'spin'; p.st = 0; p.inv = wantSuper ? 62 : 42; p.hitSet = new Set();
+    p.spinMove = (c.sp === 'slash');   /* sodom's slash rushes forward */
+    p.spinDur = wantSuper ? 50 : 34; p.spinDmg = 11 * c.pow * mul;
     SND.sfx('special');
-    G.shake = 4; p.spCool = 80;
+    G.shake = wantSuper ? 8 : 4; p.spCool = wantSuper ? 115 : 80;
   }
 
   function damageObject(o, dmg) {
@@ -573,6 +668,44 @@
     p.x = clamp(p.x, minX, maxX);
     p.z = clamp(p.z, 4, ZMAX);
   }
+
+  /* ---------------- street pits ---------------- */
+  function pitAt(x) {
+    const ps = G.stage.pits;
+    if (!ps) return null;
+    for (let i = 0; i < ps.length; i++) {
+      if (x > ps[i][0] && x < ps[i][1]) return ps[i];
+    }
+    return null;
+  }
+  /* nearest safe spot beside the pit the player fell into */
+  function pitEdge(x, fromX) {
+    const p = pitAt(x);
+    if (!p) return x;
+    return (fromX != null && fromX > x) ? p[1] + 8 : p[0] - 8;
+  }
+  function playerPitFall() {
+    const p = G.player;
+    const from = p.prevX != null ? p.prevX : p.x;
+    p.hp -= 12;
+    p.flash = 10; G.shake = 7; G.combo = 0;
+    spawnDust(p.x, p.z, 8);
+    SND.sfx('hurt');
+    addPop(p.x, p.z, '掉坑 -12', '#ff8a70');
+    p.x = clamp(pitEdge(p.x, from), G.lock ? G.lock.cam + 22 : 18, G.lock ? G.lock.cam + W - 22 : G.stage.len - 26);
+    p.y = 0; p.vy = 0; p.vx = 0; p.state = 'idle'; p.st = 0; p.inv = 70; p.atkAir = false; p.stomp = false;
+    if (p.hp <= 0) playerDie();
+  }
+  function enemyPitFall(e) {
+    e.alive = false; e.deadT = 0; e.pit = true;
+    e.state = 'down'; e.y = -6; e.vy = -1;
+    G.score += e.cfg.score + 300;
+    addExp(e.cfg.boss ? 26 : 6);
+    addPop(e.x, e.z, 'PIT! +' + (e.cfg.score + 300), '#8ff0ff');
+    spawnDust(e.x, e.z, 8);
+    SND.sfx('die');
+    if (e.token) { G.tokens++; e.token = false; }
+  }
   function clampEnemy(e) {
     e.z = clamp(e.z, 4, ZMAX);
     const minX = G.lock ? G.lock.cam - 70 : -40;
@@ -583,6 +716,7 @@
   function updatePlayer() {
     const p = G.player, c = CHARS[p.char];
     p.t++;
+    p.prevX = p.x;
     p.inv = Math.max(0, p.inv - 1);
     p.flash = Math.max(0, p.flash - 1);
     p.grabCool = Math.max(0, p.grabCool - 1);
@@ -658,22 +792,38 @@
       if (Math.abs(mx) > 0.22) { p.x += mx * spd * 0.74; p.face = mx > 0 ? 1 : -1; }
       if (Math.abs(my) > 0.22) p.z += my * spd * 0.5;
       clampPlayer(p);
-      if (Input.press('a')) { p.atkAir = true; p.hitSet = new Set(); SND.sfx('swing'); }
+      if (Input.press('a')) {
+        p.atkAir = true; p.hitSet = new Set(); SND.sfx('swing');
+        if (my > 0.5 || keys.down) {   /* dive kick: slam straight down */
+          p.stomp = true; p.vy = -7.2;
+        }
+      }
       if (p.atkAir) airHitCheck(p);
       if (p.y <= 0) {
+        if (pitAt(p.x)) { playerPitFall(); return; }
         p.y = 0; p.vy = 0; p.atkAir = false; p.state = 'idle'; p.st = 0;
         spawnDust(p.x, p.z, 4); SND.sfx('land');
+        if (p.stomp) {   /* landing shockwave */
+          p.stomp = false;
+          p.hitSet = new Set();
+          specialHit(p, 13 * CHARS[p.char].pow);
+          G.shake = 6;
+          spawnDust(p.x, p.z, 10);
+          spawnSpark(p.x, FLOOR + p.z - 4, 10, '#c8c8d8');
+          SND.sfx('heavy');
+        }
       }
       return;
     }
 
     if (p.state === 'spin') {
       p.st++;
-      specialHit(p, 10 * c.pow);
+      specialHit(p, p.spinDmg || 10 * c.pow);
       if (p.st % 9 === 0) p.hitSet = new Set(); // hurricane multi-hit
-      if (p.spinMove) p.x += p.face * 1.15;
+      if (p.spinMove) p.x += p.face * 1.35;
+      if (p.superSp && p.st % 4 === 0) spawnSpark(p.x + (Math.random() - 0.5) * 30, FLOOR + p.z - 24 - Math.random() * 20, 3, '#ffe58a');
       clampPlayer(p);
-      if (p.st > 34) { p.state = 'idle'; p.st = 0; p.spinMove = false; }
+      if (p.st > (p.spinDur || 34)) { p.state = 'idle'; p.st = 0; p.spinMove = false; p.superSp = false; }
       return;
     }
 
@@ -705,29 +855,94 @@
       return;
     }
 
-    /* idle / walk */
-    const moving = Math.abs(mx) > 0.2 || Math.abs(my) > 0.2;
-    if (Math.abs(mx) > 0.2) {
-      p.x += mx * spd; p.face = mx > 0 ? 1 : -1;
-      /* advance the walk cycle by distance actually travelled, so feet
-         stay glued to the ground (fixed per-frame steps caused stutter) */
-      p.ph += Math.abs(mx) * spd * 0.19;
+    if (p.state === 'dash') {
+      p.st++;
+      p.x += p.face * 3.1;
+      if (p.st % 3 === 0) spawnDust(p.x - p.face * 8, p.z, 2);
+      clampPlayer(p);
+      if (Input.press('a')) {   /* dash punch */
+        p.state = 'atk'; p.st = 0; p.atkIdx = 2; p.atk = { s: 3, a: 5, r: 14, dmg: 13, kb: 3.4, reach: 9, len: 12, next: 0, launch: true };
+        p.atkPh = 0; p.hitSet = new Set(); p.queued = false;
+        SND.sfx('heavy');
+        return;
+      }
+      if (p.st > 13) { p.state = 'idle'; p.st = 0; p.dashCool = 16; }
+      return;
     }
+
+    if (p.state === 'roll') {
+      p.st++;
+      p.x += p.vx; p.vx *= 0.95;
+      if (p.st % 4 === 0) spawnDust(p.x, p.z, 1);
+      clampPlayer(p);
+      if (p.st > 18) { p.state = 'idle'; p.st = 0; p.vx = 0; }
+      return;
+    }
+
+    /* idle / walk */
+    const dir = mx > 0.45 ? 1 : mx < -0.45 ? -1 : 0;
+    const moving = Math.abs(mx) > 0.2 || Math.abs(my) > 0.2;
+    if (dir !== 0) {
+      p.face = dir;
+      p.x += mx * spd;
+      /* normalized walk phase: one full cycle = a fixed stride, so the feet
+         never slide and frame changes are evenly spaced */
+      p.ph = (p.ph + Math.abs(mx) * spd / 30) % 1;
+      if (p.prevDir === 0) {   /* rising edge of a direction press */
+        if (p.lastTapDir === dir && p.t - p.tapT < 13 && p.dashCool <= 0) {
+          /* double-tap = dash */
+          p.state = 'dash'; p.st = 0; p.dashCool = 26;
+          p.lastTapDir = 0; p.tapT = -99;
+          spawnDust(p.x, p.z, 5);
+          SND.sfx('swing');
+          p.prevDir = dir;
+          clampPlayer(p);
+          return;
+        }
+        p.lastTapDir = dir; p.tapT = p.t;
+      }
+    }
+    p.prevDir = dir;
     if (Math.abs(my) > 0.2) {
       p.z += my * spd * 0.62;
-      p.ph += Math.abs(my) * spd * 0.10;
+      p.ph = (p.ph + Math.abs(my) * spd * 0.62 / 48) % 1;
     }
     p.state = moving ? 'walk' : 'idle';
-    if (!moving) { p.ph += 0.045; p.idleT = (p.idleT || 0) + 1; } else p.idleT = 0;
-    p.bob = moving;
     p.st = 0;
     clampPlayer(p);
+    if (pitAt(p.x)) { playerPitFall(); return; }   /* walked into an open pit */
 
-    if (Input.press('c')) { startSpecial(p); return; }
+    if (p.dashCool > 0) p.dashCool--;
+
+    /* dodge roll: hold down + jump */
+    if (Input.press('b') && (my > 0.55 || keys.down)) {
+      p.state = 'roll'; p.st = 0; p.inv = 30; p.vx = -p.face * 2.7;
+      spawnDust(p.x, p.z, 4);
+      SND.sfx('jump');
+      return;
+    }
+    if (Input.press('c')) {
+      if (p.weapon) { throwWeapon(p); return; }
+      startSpecial(p); return;
+    }
     if (Input.press('a')) { startAttack(p); return; }
     if (Input.press('b')) { startJump(p); return; }
 
     if (p.grabCool <= 0) tryGrab(p);
+  }
+
+  /* throw the held pipe as a spinning projectile */
+  function throwWeapon(p) {
+    p.weapon = null;
+    p.state = 'punch3'; p.st = 0; p.atkIdx = 2;
+    p.atk = { s: 4, a: 3, r: 14, dmg: 0, kb: 0, reach: 0, len: 0, next: 0 };
+    p.atkPh = 0; p.hitSet = new Set();
+    G.shots.push({
+      id: ++G.uid, kind: 'pipe', x: p.x + p.face * 10, z: p.z, y: 26,
+      vx: p.face * 5.4, dmg: 15, life: 80, face: p.face, delay: 3, spin: true,
+      hitSet: new Set()
+    });
+    SND.sfx('swing');
   }
 
   function tryGrab(p) {
@@ -782,6 +997,7 @@
 
     if (e.state === 'hurt') {
       e.hurtT--; e.x += e.vx; e.vx *= 0.84;
+      if (pitAt(e.x)) { enemyPitFall(e); return; }
       if (e.hurtT <= 0) { e.state = 'walk'; e.st = 0; }
       clampEnemy(e); return;
     }
@@ -789,6 +1005,7 @@
     if (e.state === 'down') {
       e.y += e.vy; e.vy -= GRAV; e.x += e.vx; e.vx *= 0.9;
       if (e.y <= 0) {
+        if (pitAt(e.x)) { enemyPitFall(e); return; }   /* knocked into a pit */
         e.y = 0; e.vy = 0; e.vx = 0;
         e.landT++;
         if (e.landT > 26) { e.state = 'getup'; e.st = 0; e.landT = 0; e.inv = 40; }
@@ -822,6 +1039,81 @@
       return;
     }
 
+    /* --- kick: longer reach, commits forward --- */
+    if (e.state === 'ekick') {
+      e.st++;
+      const T1 = 15, T2 = 22, T3 = 46;
+      if (e.st === T1) SND.sfx('swing');
+      if (e.st >= T1 && e.st <= T2) {
+        e.x += e.face * 0.7;
+        if (!e.hasHit) {
+          const p = G.player;
+          const dx = (p.x - e.x) * e.face;
+          const reach = e.cfg.atkRange + 12;
+          if (dx > -8 && dx < reach && Math.abs(p.z - e.z) < 17 && p.y < 26) {
+            e.hasHit = true;
+            damagePlayer(e.cfg.dmg * 1.2, e.x);
+            G.shake = Math.max(G.shake, 4);
+          }
+        }
+      }
+      clampEnemy(e);
+      if (e.st > T3) {
+        e.state = 'walk'; e.st = 0; e.cool = 52 + Math.random() * 40;
+        if (e.token) { G.tokens++; e.token = false; }
+      }
+      return;
+    }
+
+    /* --- jump attack: leaps at the player (and hops over pits) --- */
+    if (e.state === 'ejump') {
+      e.st++;
+      if (e.st === 1) {
+        e.y = 1; e.vy = 4.7;
+        const p = G.player;
+        e.vx = (e.jvx != null) ? e.jvx : clamp((p.x - e.x) / 26, -2.6, 2.6);
+        e.jvx = null;
+        e.hasHit = e.hasHit || false;
+        SND.sfx('jump');
+        spawnDust(e.x, e.z, 3);
+      }
+      e.y += e.vy; e.vy -= GRAV;
+      e.x += e.vx;
+      e.state = 'ejump';
+      clampEnemy(e);
+      if (e.y <= 0) {
+        e.y = 0; e.vy = 0; e.vx = 0;
+        spawnDust(e.x, e.z, 6);
+        if (pitAt(e.x)) { enemyPitFall(e); return; }
+        G.shake = Math.max(G.shake, 4);
+        const p = G.player;
+        if (!e.hasHit && Math.abs(p.x - e.x) < 28 && Math.abs(p.z - e.z) < 18 && p.y < 16) {
+          e.hasHit = true;
+          damagePlayer(e.cfg.dmg * 1.15, e.x);
+        }
+        e.state = 'walk'; e.st = 0; e.cool = 58 + Math.random() * 40;
+        if (e.token) { G.tokens++; e.token = false; }
+      }
+      return;
+    }
+
+    /* --- thrown knife --- */
+    if (e.state === 'eknife') {
+      e.st++;
+      if (e.st === 12) {
+        G.shots.push({
+          id: ++G.uid, kind: 'knife', foe: true, x: e.x + e.face * 10, z: e.z, y: 24,
+          vx: e.face * 3.6, dmg: e.cfg.dmg * 0.8, life: 120, face: e.face, delay: 0
+        });
+        SND.sfx('swing');
+      }
+      if (e.st > 26) {
+        e.state = 'walk'; e.st = 0; e.cool = 66 + Math.random() * 40;
+        if (e.token) { G.tokens++; e.token = false; }
+      }
+      return;
+    }
+
     if (e.state === 'dash') {
       e.st++;
       e.x += e.face * 3.4;
@@ -848,21 +1140,46 @@
     }
 
     const range = e.cfg.atkRange;
+
+    /* bouncy bosses hop around between attacks */
+    if (e.cfg.bouncy && e.state === 'walk' && Math.random() < 0.012) {
+      e.state = 'ejump'; e.st = 0; e.jvx = null; e.hasHit = false;
+      return;
+    }
+
     if (adx > range || adz > 9) {
       e.face = adx > 3 ? (dx > 0 ? 1 : -1) : e.face;
       const sp = e.cfg.spd;
+      /* hop over a pit rather than walking into it */
+      const ahead = e.x + e.face * 18;
+      const pit = pitAt(ahead);
+      if (pit) {
+        const land = e.face > 0 ? pit[1] + 16 : pit[0] - 16;
+        e.state = 'ejump'; e.st = 0; e.hasHit = true;
+        e.jvx = clamp((land - e.x) / 26, -3.4, 3.4);
+        return;
+      }
       const movedX = adx > range ? Math.abs(Math.sign(dx) * sp) : 0;
       if (adx > range) e.x += Math.sign(dx) * sp;
       e.z += Math.sign(dz) * sp * 0.62 * Math.min(1, adz / 14);
-      e.ph += movedX * 0.155 + 0.01;   /* distance-based step, same as the player */
+      e.ph = (e.ph + movedX / 30) % 1;   /* normalized walk phase, same as the player */
       if (e.state !== 'walk') { e.state = 'walk'; e.st = 0; }
     } else {
       e.face = dx > 0 ? 1 : -1;
       if (e.state !== 'idle') { e.state = 'idle'; e.st = 0; }
       if (e.cool <= 0 && G.tokens > 0) {
-        G.tokens--; e.token = true;
-        e.state = 'eatk'; e.st = 0; e.hasHit = false;
-        e.cool = 60 + Math.random() * 40;
+        G.tokens--; e.token = true; e.hasHit = false;
+        const mvList = e.cfg.moves;
+        let mv = mvList && mvList.length ? mvList[(Math.random() * mvList.length) | 0] : 'punch';
+        if (mv === 'knife' && adx < 62) mv = 'punch';
+        if (mv === 'dash' && adx < 72) mv = 'punch';
+        if (mv === 'jump' && adz > 26) mv = 'punch';
+        e.atkKind = mv;
+        if (mv === 'kick') { e.state = 'ekick'; e.st = 0; e.cool = 70 + Math.random() * 40; }
+        else if (mv === 'jump') { e.state = 'ejump'; e.st = 0; e.jvx = null; e.cool = 82 + Math.random() * 40; }
+        else if (mv === 'knife') { e.state = 'eknife'; e.st = 0; e.cool = 80 + Math.random() * 40; }
+        else if (mv === 'dash') { e.state = 'dash'; e.st = 0; e.cool = 100; SND.sfx('special'); }
+        else { e.state = 'eatk'; e.st = 0; e.cool = 56 + Math.random() * 40; }
       }
     }
 
@@ -874,6 +1191,7 @@
         e.x += (ddx >= 0 ? 1 : -1) * 0.35;
       }
     }
+    if (pitAt(e.x)) { enemyPitFall(e); return; }
     clampEnemy(e);
   }
 
@@ -884,13 +1202,36 @@
       if (s.delay > 0) { s.delay--; continue; }
       s.x += s.vx; s.life--;
       let dead = s.life <= 0;
+      if (s.foe) {
+        /* enemy projectile: hits the player */
+        const p = G.player;
+        if (p.state !== 'down' && p.state !== 'dead' && p.inv <= 0 && p.y < 30 &&
+            Math.abs(p.x - s.x) < 12 && Math.abs(p.z - s.z) < 14) {
+          damagePlayer(s.dmg, s.x);
+          dead = true;
+        }
+        if (s.x < G.camX - 30 || s.x > G.camX + W + 30) dead = true;
+        if (dead) { spawnSpark(s.x, FLOOR + s.z - s.y, 5, '#ffd0a0'); G.shots.splice(i, 1); }
+        continue;
+      }
       for (let j = 0; j < G.enemies.length; j++) {
         const e = G.enemies[j];
         if (!e.alive || e.state === 'down') continue;
+        if (s.hitSet && s.hitSet.has(e.id)) continue;   // piercing pipe: one hit each
         if (Math.abs(e.x - s.x) < 12 && Math.abs(e.z - s.z) < 15) {
           hitEnemy(e, s.dmg, s.face * 2, true);
+          if (s.hitSet) { s.hitSet.add(e.id); continue; }   // pipe keeps flying
           dead = true;
           break;
+        }
+      }
+      if (!dead && s.kind === 'pipe') {
+        for (const o of G.objs) {
+          if (o.hp <= 0 || (s.hitSet && s.hitSet.has('o' + o.id))) continue;
+          if (Math.abs(o.x - s.x) < 12 && Math.abs(o.z - s.z) < 14) {
+            s.hitSet.add('o' + o.id);
+            damageObject(o, s.dmg);
+          }
         }
       }
       if (s.x < G.camX - 30 || s.x > G.camX + W + 30) dead = true;
@@ -905,15 +1246,17 @@
   function updateWorld() {
     const st = G.stage;
     if (G.msgT > 0) G.msgT--;
+    if (G.warnT > 0) G.warnT--;
     if (G.comboT > 0) { G.comboT--; if (G.comboT === 0) G.combo = 0; }
     G.shake *= 0.86; if (G.shake < 0.4) G.shake = 0;
 
     updatePlayer();
     updateShots();
 
+    const frozen = G.warnT > 74;   /* enemies hold still during the WARNING sting */
     for (let i = G.enemies.length - 1; i >= 0; i--) {
       const e = G.enemies[i];
-      updateEnemy(e);
+      if (!frozen) updateEnemy(e);
       if (!e.alive && e.deadT > 96) G.enemies.splice(i, 1);
     }
 
@@ -1127,6 +1470,7 @@
 
   /* ---------------- render ---------------- */
   function drawEnt(e) {
+    if (e.pit) return;   /* fell into a hole — gone */
     const sx = e.x - G.camX;
     const sy = FLOOR + e.z - e.y;
     if (sx < -70 || sx > W + 70) return;
@@ -1136,6 +1480,8 @@
       let ds = 'idle', ph = p.ph, alpha = 1, flash = p.flash > 0;
       switch (p.state) {
         case 'walk': ds = 'walk'; break;
+        case 'dash': ds = 'walk'; ph = (p.t * 0.09) % 1; break;
+        case 'roll': ds = 'getup'; break;
         case 'atk': ds = ['punch1', 'punch2', 'punch3'][p.atkIdx] || 'punch1'; ph = p.atkPh; break;
         case 'jump': ds = p.atkAir ? 'jumpkick' : 'jump'; break;
         case 'hurt': ds = 'hurt'; break;
@@ -1152,10 +1498,22 @@
       }
       if (p.state === 'dead') alpha = clamp(1 - p.deadT / 130, 0.25, 1);
       ART.drawDude(g, {
-        x: sx, y: sy, u: 2, face: p.face, pal: flash ? PAL.flash : PAL[CHARS[p.char].key],
+        x: sx, y: sy, u: 2, face: p.face, pal: flash ? PAL.flash : PAL[CHARS[p.char].pal],
         state: ds, ph: ph, t: p.t, alpha: alpha, hairStyle: CHARS[p.char].hair,
-        weapon: p.weapon, bob: p.bob
+        weapon: p.weapon
       });
+      /* dash afterimages */
+      if (p.state === 'dash') {
+        for (let k = 1; k <= 2; k++) {
+          g.globalAlpha = 0.22 / k;
+          ART.drawDude(g, {
+            x: sx - p.face * k * 9, y: sy, u: 2, face: p.face,
+            pal: PAL[CHARS[p.char].pal], state: 'walk', ph: (p.t * 0.09) % 1,
+            t: p.t, hairStyle: CHARS[p.char].hair
+          });
+          g.globalAlpha = 1;
+        }
+      }
       return;
     }
 
@@ -1167,6 +1525,9 @@
       case 'down': case 'grabbed': ds = 'down'; break;
       case 'getup': ds = 'getup'; break;
       case 'eatk': ds = 'punch1'; ph = clamp(e.st / 42, 0, 1); break;
+      case 'ekick': ds = 'punch2'; ph = clamp(e.st / 46, 0, 1); break;
+      case 'ejump': ds = e.y > 6 ? 'jumpkick' : 'jump'; break;
+      case 'eknife': ds = 'punch3'; ph = clamp(e.st / 26, 0, 1); break;
       case 'dash': ds = 'walk'; ph = e.ph; break;
       default: ds = 'walk';
     }
@@ -1175,13 +1536,59 @@
     ART.drawDude(g, {
       x: sx, y: sy, u: 2 * (e.drawScale || 1), face: e.face,
       pal: e.flash > 0 ? PAL.flash : PAL[e.pal],
-      state: ds, ph: ph, t: G.t, alpha: alpha, hairStyle: e.hair, weapon: e.weapon,
-      bob: ds === 'walk'
+      state: ds, ph: ph, t: G.t, alpha: alpha, hairStyle: e.hair, weapon: e.weapon
     });
+  }
+
+  /* ---------------- street pits (throw enemies in!) ---------------- */
+  function drawPits() {
+    const ps = G.stage.pits;
+    if (!ps || !ps.length) return;
+    for (let i = 0; i < ps.length; i++) {
+      const x0 = Math.round(ps[i][0] - G.camX), x1 = Math.round(ps[i][1] - G.camX);
+      if (x1 < -40 || x0 > W + 40) continue;
+      const w = x1 - x0;
+      /* the hole */
+      g.fillStyle = '#0a0a12';
+      g.fillRect(x0, FLOOR - 3, w, H - FLOOR + 3);
+      for (let k = 0; k < 8; k++) {
+        g.fillStyle = 'rgba(0,0,0,' + (0.16 + k * 0.1).toFixed(2) + ')';
+        g.fillRect(x0 + 1, FLOOR + k * 11, w - 2, 11);
+      }
+      /* broken kerb */
+      g.fillStyle = '#9a9aa2'; g.fillRect(x0 - 3, FLOOR - 7, 3, H - FLOOR + 7);
+      g.fillStyle = '#9a9aa2'; g.fillRect(x1, FLOOR - 7, 3, H - FLOOR + 7);
+      g.fillStyle = '#585860'; g.fillRect(x0 - 3, FLOOR - 7, 3, 2); g.fillRect(x1, FLOOR - 7, 3, 2);
+      /* rebar */
+      g.fillStyle = '#7a6a52';
+      g.fillRect(x0 + 2, FLOOR + 8, 2, 6);
+      g.fillRect(x1 - 5, FLOOR + 16, 2, 7);
+      /* hazard stripes on the lip */
+      for (let k = 0; k < 3; k++) {
+        g.fillStyle = k % 2 ? '#f8c020' : '#202028';
+        g.fillRect(x0 - 12 + k * 4, FLOOR - 2, 4, 3);
+        g.fillRect(x1 + k * 4, FLOOR - 2, 4, 3);
+      }
+    }
+  }
+
+  function drawWarning() {
+    if (G.warnT <= 0) return;
+    const t = G.warnT;
+    const a = t > 92 ? (108 - t) / 16 : (t < 22 ? t / 22 : 1);
+    g.globalAlpha = clamp(a, 0, 1) * (Math.floor(G.t / 6) % 2 ? 0.42 : 0.22);
+    g.fillStyle = '#b00808';
+    g.fillRect(0, 0, W, H);
+    g.globalAlpha = clamp(a, 0, 1);
+    txt('WARNING', W / 2, 112, 30, '#ff3020', 'center');
+    txt(G.warnName, W / 2, 146, 15, '#ffe58a', 'center');
+    txt('BOSS APPROACHING', W / 2, 168, 9, '#f8f8f8', 'center');
+    g.globalAlpha = 1;
   }
 
   function drawWorld() {
     nesBG(G.camX, G.stage.bg);
+    drawPits();
 
     const list = [];
     for (let i = 0; i < G.objs.length; i++) { if (G.objs[i].hp > 0) list.push({ z: G.objs[i].z, k: 'o', r: G.objs[i] }); }
@@ -1209,11 +1616,32 @@
       else drawEnt(it.r);
     }
 
-    /* hadouken fireballs */
+    /* hadouken fireballs & thrown pipes */
     for (let i = 0; i < G.shots.length; i++) {
       const s = G.shots[i];
       if (s.delay > 0) continue;
-      const x = s.x - G.camX, y = FLOOR + s.z - s.y;
+      const x = Math.round(s.x - G.camX), y = Math.round(FLOOR + s.z - s.y);
+      if (s.kind === 'pipe') {
+        g.save();
+        g.translate(x, y);
+        g.rotate(G.t * 0.55 * s.face);
+        g.fillStyle = '#000'; g.fillRect(-9, -2, 18, 4);
+        g.fillStyle = '#b8c4d0'; g.fillRect(-8, -1, 16, 2);
+        g.fillStyle = '#e8eef4'; g.fillRect(-8, -1, 6, 2);
+        g.restore();
+        continue;
+      }
+      if (s.kind === 'knife') {
+        g.save();
+        g.translate(x, y);
+        g.scale(s.face, 1);
+        g.fillStyle = '#000'; g.fillRect(-9, -2, 18, 5);
+        g.fillStyle = '#d8dce4'; g.fillRect(-8, -1, 12, 3);
+        g.fillStyle = '#f8f8ff'; g.fillRect(-8, -1, 5, 1);
+        g.fillStyle = '#8a6a3a'; g.fillRect(4, -1, 5, 3);
+        g.restore();
+        continue;
+      }
       g.fillStyle = '#000';
       g.fillRect(x - 7, y - 6, 14, 12);
       g.fillStyle = '#38a0f8';
@@ -1398,37 +1826,43 @@
 
   function drawSelect() {
     g.fillStyle = '#000'; g.fillRect(0, 0, W, H);
-    txt('SELECT PLAYER', W / 2, 26, 20, '#f8f8f8', 'center');
-    txt('选择角色（←→ 选择，A 确定）', W / 2, 48, 9, '#8ff0ff', 'center');
+    txt('SELECT PLAYER', W / 2, 20, 18, '#f8f8f8', 'center');
+    txt('选择角色（方向键选择，A 确定）', W / 2, 38, 8.5, '#8ff0ff', 'center');
 
-    for (let i = 0; i < 3; i++) {
+    const cols = 3, cw = 116, chh = 96, gx = (W - cols * cw - 24) / 2 + 12;
+    for (let i = 0; i < CHAR_KEYS.length; i++) {
       const k = CHAR_KEYS[i], c = CHARS[k];
-      const x = 70 + i * 120, y = 66, w = 100, h = 168;
+      const col = i % cols, row = Math.floor(i / cols);
+      const x = gx + col * (cw + 12), y = 48 + row * (chh + 8);
+      const locked = c.secret && !G.unlocked;
       const sel = G.menuSel === i;
-      g.fillStyle = sel ? '#182858' : '#101018';
-      g.fillRect(x, y, w, h);
-      g.strokeStyle = sel ? '#f8f8f8' : '#383850';
+      g.fillStyle = sel ? '#182858' : (locked ? '#0c0c12' : '#101018');
+      g.fillRect(x, y, cw, chh);
+      g.strokeStyle = sel ? '#f8f8f8' : (locked ? '#23232e' : '#383850');
       g.lineWidth = sel ? 2 : 1;
-      g.strokeRect(x + 0.5, y + 0.5, w - 1, h - 1);
+      g.strokeRect(x + 0.5, y + 0.5, cw - 1, chh - 1);
 
-      ART.drawPortrait(g, k, x + w / 2, y + 30, 2);
-      txt(c.name, x + w / 2, y + 52, 12, sel ? '#ffe58a' : '#f8f8f8', 'center');
-      txt(c.cn + ' · ' + c.style, x + w / 2, y + 68, 8, '#8ff0ff', 'center');
+      if (locked) {
+        txt('???', x + cw / 2, y + 34, 15, '#3a3a48', 'center');
+        txt('通关后解锁', x + cw / 2, y + 56, 8, '#3a3a48', 'center');
+        txt('LOCKED', x + cw / 2, y + 74, 8, '#2c2c3a', 'center');
+        continue;
+      }
+      ART.drawPortrait(g, k, x + cw / 2, y + 24, 1.6);
+      txt(c.name, x + cw / 2, y + 42, 10, sel ? '#ffe58a' : '#f8f8f8', 'center');
+      txt(c.cn + ' · ' + c.style, x + cw / 2, y + 54, 7.5, '#8ff0ff', 'center');
       /* stats */
       const stats = [[c.hp / 130, '#48c048'], [c.pow / 1.4, '#e84038'], [c.spd / 2, '#3878e8']];
       for (let s = 0; s < 3; s++) {
         g.fillStyle = '#282838';
-        g.fillRect(x + 12, y + 80 + s * 6, w - 24, 4);
+        g.fillRect(x + 14, y + 62 + s * 6, cw - 28, 3.5);
         g.fillStyle = stats[s][1];
-        g.fillRect(x + 12, y + 80 + s * 6, (w - 24) * clamp(stats[s][0], 0, 1), 4);
+        g.fillRect(x + 14, y + 62 + s * 6, (cw - 28) * clamp(stats[s][0], 0, 1), 3.5);
       }
-      /* move list */
-      for (let m = 0; m < c.moves.length; m++) {
-        txt(c.moves[m], x + w / 2, y + 108 + m * 13, 7.5, '#c8c8d8', 'center');
-      }
-      txt('速度×' + c.spd.toFixed(2), x + w / 2, y + 150, 7, '#707890', 'center');
+      if (c.secret) txt('隐藏角色', x + cw / 2, y + 86, 7.5, '#c0a0ff', 'center');
     }
-    if (Math.floor(G.t / 26) % 2 === 0) txt('按 A / J 出击!', W / 2, 250, 11, '#ffe58a', 'center');
+    if (G.unlocked && Math.floor(G.t / 26) % 2 === 0) txt('按 A / J 出击!', W / 2, 258, 10, '#ffe58a', 'center');
+    else if (!G.unlocked && Math.floor(G.t / 26) % 2 === 0) txt('通关一次解锁隐藏角色!', W / 2, 258, 9, '#707890', 'center');
   }
 
   function drawStory() {
@@ -1469,11 +1903,13 @@
 
     /* metro city map */
     const zones = [
-      { n: 'SLUM', x: 90, y: 150 },
-      { n: 'HABOR TOWN', x: 190, y: 120 },
-      { n: 'FACTORY', x: 292, y: 150 },
-      { n: 'RIVERSIDE', x: 148, y: 196 },
-      { n: 'BAY AREA', x: 250, y: 208 }
+      { n: 'SLUM', x: 78, y: 146 },
+      { n: 'HABOR TOWN', x: 168, y: 112 },
+      { n: 'FACTORY', x: 258, y: 146 },
+      { n: 'RIVERSIDE', x: 130, y: 200 },
+      { n: 'BAY AREA', x: 226, y: 206 },
+      { n: 'SUBWAY', x: 330, y: 190 },
+      { n: 'GEAR HQ', x: 378, y: 132 }
     ];
     for (let i = 0; i < zones.length; i++) {
       const z = zones[i];
@@ -1587,10 +2023,14 @@
         break;
 
       case 'select': {
+        const nAvail = G.unlocked ? CHAR_KEYS.length : BASE_KEYS;
         let mx = (keys.right ? 1 : 0) - (keys.left ? 1 : 0);
+        let my = (keys.down ? 1 : 0) - (keys.up ? 1 : 0);
         if (Math.abs(Input.ax) > 0.55) mx = Input.ax > 0 ? 1 : -1;
-        if (mx !== 0 && G.t % 12 === 0) { G.menuSel = (G.menuSel + mx + 3) % 3; SND.sfx('select'); }
-        if (Input.press('b') || Input.press('c')) { G.menuSel = (G.menuSel + 1) % 3; SND.sfx('select'); }
+        if (Math.abs(Input.ay) > 0.55) my = Input.ay > 0 ? 1 : -1;
+        if (mx !== 0 && G.t % 12 === 0) { G.menuSel = (G.menuSel + mx + nAvail) % nAvail; SND.sfx('select'); }
+        if (my !== 0 && G.t % 12 === 0) { G.menuSel = (G.menuSel + my * 3 + nAvail) % nAvail; SND.sfx('select'); }
+        if (Input.press('b') || Input.press('c')) { G.menuSel = (G.menuSel + 1) % nAvail; SND.sfx('select'); }
         if (Input.press('a') || Input.press('start')) startGame(CHAR_KEYS[G.menuSel]);
         break;
       }
@@ -1631,6 +2071,7 @@
             loadStage(G.stageIdx + 1, false);
           } else {
             G.state = 'ending'; G.endT = 0; SND.music('clear');
+            unlockSecrets();
           }
         }
         break;
@@ -1675,6 +2116,7 @@
     g.restore();
 
     drawHUD();
+    drawWarning();
 
     if (G.state === 'intro') drawIntro();
     else if (G.state === 'pause') drawPause();

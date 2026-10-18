@@ -1,5 +1,5 @@
 /* STREET BLITZ — offline service worker (cache-first) */
-const CACHE = 'street-blitz-v5';
+const CACHE = 'street-blitz-v8';
 const ASSETS = [
   './',
   './index.html',

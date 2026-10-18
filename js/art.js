@@ -55,10 +55,12 @@
            jumpkick:[25], hurt:[32], down:[43], getup:[44], spin:[40,41], grab:[13],
            knee:[21], throw:[19], special:[29,40,41], crouch:[8], dead:[45] }
   };
-  /* walk cycle: real NES walk frames in step order (stride alternates) */
+  /* walk cycle: real NES walk frames verified against the sheet
+     (walk-check.png). Frame 4 of haggar is a punch pose and frame 36 of
+     cody is a dash pose — mixing them in made walking look broken. */
   const WALK = {
-    cody:   [1, 36, 2, 36],       // contact / pass / contact / pass
-    haggar: [1, 2, 3, 4],
+    cody:   [1, 2, 3, 2],   // step / pass / step / pass
+    haggar: [1, 2, 3, 2],
     guy:    [1, 2, 3, 2]
   };
   const ANIM_BASE = { cody:'cody', jake:'cody', axel:'cody',
@@ -124,12 +126,15 @@
     if (S === 'walk' && WALK[base]) anim = WALK[base];
     let li;
     if (anim.length > 1) {
-      /* smooth cycle: phase is advanced by distance travelled (game.js), so the
-         feet stay in sync with the ground speed instead of stuttering */
-      const p = (o.ph || 0);
-      li = anim[((Math.floor(p) % anim.length) + anim.length) % anim.length];
-      if (S === 'spin' || S === 'getup' || S === 'throw') {
+      if (S === 'walk') {
+        /* o.ph is a normalized 0..1 cycle advanced by travelled distance,
+           so frame changes are evenly spaced and feet track the ground */
+        const p = (((o.ph || 0) % 1) + 1) % 1;
+        li = anim[Math.min(anim.length - 1, Math.floor(p * anim.length))];
+      } else if (S === 'spin' || S === 'getup' || S === 'throw') {
         li = anim[((Math.floor((o.t || 0) / 4) % anim.length) + anim.length) % anim.length];
+      } else {
+        li = anim[((Math.floor((o.t || 0) / 5) % anim.length) + anim.length) % anim.length];
       }
     } else li = anim[0];
     const f = window.SPRITE_FRAMES.frames[set.start + li];
@@ -142,10 +147,11 @@
        widths never shift the character sideways */
     const ox = -pv.ax * dw;          // already in the (mirrored) local space
     const oy = -pv.ay * dh;
-    const bob = (S === 'walk' && o.bob) ? -(Math.abs(Math.sin((o.ph || 0) * Math.PI / 2)) > 0.72 ? 1 : 0) : 0;
+    /* no extra bob: the NES frames already contain the body's own rise & fall,
+       adding one on top made walking look jittery */
     g.save();
     if (o.alpha != null) g.globalAlpha *= o.alpha;
-    g.translate(Math.round(fx), Math.round(fy) + bob);
+    g.translate(Math.round(fx), Math.round(fy));
     g.scale(face, 1);
     g.drawImage(ATLAS.img, f.x, f.y, f.w, f.h,
       Math.round(ox), Math.round(oy), Math.round(dw), Math.round(dh));
@@ -153,7 +159,7 @@
   }
 
   /* big artwork frames for portraits (local index within each hero's set) */
-  const PORTRAIT_FRAME = { cody: 31, guy: 37, haggar: 20 };
+  const PORTRAIT_FRAME = { cody: 31, guy: 37, haggar: 20, sodom: 20, damnd: 37 };
 
   function rnd(i) {
     const s = Math.sin(i * 127.1 + 311.7) * 43758.5453;
@@ -482,8 +488,8 @@
         return;
       }
     }
-    const c = PAL[key];
-    const hs = key === 'guy' ? 'spiky' : key === 'cody' ? 'long' : key === 'haggar' ? 'flat' : 'spiky';
+    const c = PAL[key] || PAL[key === 'sodom' ? 'soma' : key] || PAL.cody;
+    const hs = key === 'guy' || key === 'damnd' ? 'spiky' : key === 'cody' || key === 'sodom' ? 'long' : 'flat';
     px(g, x - 7 * u, y - 8 * u, 14 * u, 9 * u, '#000');
     px(g, x - 6 * u, y - 7 * u, 12 * u, 7.4 * u, c.skin);
     px(g, x - 6 * u, y - 7 * u, 12 * u, 2.6 * u, c.hair);
