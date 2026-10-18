@@ -2097,6 +2097,7 @@
 
   function render() {
     g.setTransform(1, 0, 0, 1, 0, 0);
+    g.imageSmoothingEnabled = false;   /* crisp nearest-neighbour sprites */
     g.globalAlpha = 1;
     g.fillStyle = '#000';
     g.fillRect(0, 0, W, H);
